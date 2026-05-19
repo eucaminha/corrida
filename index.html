@@ -1,0 +1,2107 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu Dashboard de Corrida PRO 🏃‍♀️</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #00d4aa;
+            --secondary: #ff6b6b;
+            --accent: #ffd93d;
+            --dark: #1a1a2e;
+            --light: #f8f9fa;
+            --glass: rgba(255, 255, 255, 0.1);
+            --shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
+            color: var(--dark);
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header with Actions */
+        .header-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .btn-action {
+            background: rgba(255, 255, 255, 0.95);
+            border: none;
+            padding: 12px 20px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Outfit', sans-serif;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-action:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-sync {
+            background: linear-gradient(135deg, #00d4aa 0%, #00b894 100%);
+            color: white;
+        }
+
+        .btn-sync.syncing {
+            background: linear-gradient(135deg, #ffd93d 0%, #ffa502 100%);
+        }
+
+        .sync-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #00ff00;
+            animation: pulse-status 2s infinite;
+        }
+
+        @keyframes pulse-status {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Hero */
+        .hero {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 30px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow-lg);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(0, 212, 170, 0.1) 0%, transparent 70%);
+            animation: pulse 8s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.3; }
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--primary) 0%, #00b894 100%);
+            padding: 25px;
+            border-radius: 20px;
+            color: white;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            font-family: 'JetBrains Mono', monospace;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        /* Goals Section */
+        .goals-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow);
+        }
+
+        .goals-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .goals-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+        }
+
+        .btn-add-goal {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s ease;
+        }
+
+        .btn-add-goal:hover {
+            transform: scale(1.05);
+        }
+
+        .goals-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .goal-item {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 15px;
+            border-left: 5px solid var(--primary);
+        }
+
+        .goal-header-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .goal-title-text {
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+        .goal-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: transform 0.2s ease;
+        }
+
+        .btn-icon:hover {
+            transform: scale(1.2);
+        }
+
+        .goal-progress-bar {
+            background: #e0e0e0;
+            height: 10px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .goal-progress-fill {
+            background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+            height: 100%;
+            transition: width 0.5s ease;
+        }
+
+        .goal-progress-text {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        /* Phases */
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: white;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .phases-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .phase-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 25px;
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+        }
+
+        .phase-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .phase-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .phase-title {
+            font-size: 1.3rem;
+            font-weight: 800;
+        }
+
+        .phase-badge {
+            background: var(--primary);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .progress-bar-container {
+            background: #e0e0e0;
+            height: 12px;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .progress-bar {
+            background: linear-gradient(90deg, var(--primary) 0%, var(--secondary) 100%);
+            height: 100%;
+            transition: width 0.5s ease;
+            border-radius: 10px;
+        }
+
+        .workouts-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .workout-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+
+        .workout-item:hover {
+            background: #e9ecef;
+        }
+
+        .workout-checkbox {
+            width: 24px;
+            height: 24px;
+            border: 3px solid var(--primary);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .workout-checkbox.checked {
+            background: var(--primary);
+        }
+
+        .workout-checkbox.checked::after {
+            content: '✓';
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .workout-type {
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            flex-shrink: 0;
+        }
+
+        .type-tempo {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .type-distancia {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .type-tiro {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .workout-desc {
+            flex: 1;
+            font-size: 0.9rem;
+            color: #495057;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            backdrop-filter: blur(5px);
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 25px;
+            padding: 40px;
+            max-width: 700px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: var(--shadow-lg);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .modal-title {
+            font-size: 1.8rem;
+            font-weight: 800;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 2rem;
+            cursor: pointer;
+            color: #999;
+            transition: color 0.2s ease;
+        }
+
+        .close-btn:hover {
+            color: var(--secondary);
+        }
+
+        .form-section {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 15px;
+        }
+
+        .form-section-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            margin-bottom: 15px;
+            color: var(--primary);
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+            font-size: 0.9rem;
+        }
+
+        .form-input, .form-select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-family: 'Outfit', sans-serif;
+            transition: border 0.2s ease;
+        }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .rating-container {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .rating-btn {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .rating-btn:hover {
+            border-color: var(--primary);
+        }
+
+        .rating-btn.selected {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, #00b894 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s ease;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.02);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            transition: transform 0.2s ease;
+            font-family: 'Outfit', sans-serif;
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover {
+            transform: scale(1.02);
+        }
+
+        /* Charts */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .chart-card {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: var(--shadow);
+        }
+
+        .chart-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            margin-bottom: 20px;
+        }
+
+        /* History */
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .history-item {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+        }
+
+        .history-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .history-info {
+            flex: 1;
+        }
+
+        .history-date {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .history-workout {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .history-stats {
+            font-size: 0.85rem;
+            color: #888;
+        }
+
+        .history-expanded {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e0e0e0;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .history-detail {
+            font-size: 0.85rem;
+        }
+
+        .history-detail-label {
+            font-weight: 600;
+            color: #666;
+        }
+
+        .history-actions {
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .btn-edit, .delete-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: transform 0.2s ease;
+            font-weight: 600;
+        }
+
+        .delete-btn {
+            background: var(--secondary);
+        }
+
+        .btn-edit:hover, .delete-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .badges-container {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+
+        .badge {
+            background: linear-gradient(135deg, var(--accent) 0%, #ffa502 100%);
+            color: #333;
+            padding: 10px 20px;
+            border-radius: 15px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        /* Auth Section */
+        .auth-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+
+        .auth-title {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+        }
+
+        .auth-description {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .btn-google {
+            background: white;
+            color: #333;
+            border: 2px solid #e0e0e0;
+            padding: 12px 25px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-google:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+        }
+
+        .user-name {
+            font-weight: 600;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+
+            .phases-grid,
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .modal-content {
+                padding: 25px;
+            }
+
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Actions -->
+        <div class="header-actions">
+            <button class="btn-action" onclick="exportData()">
+                📤 Exportar Backup
+            </button>
+            <button class="btn-action" onclick="document.getElementById('importFile').click()">
+                📥 Importar Backup
+            </button>
+            <input type="file" id="importFile" accept=".json" style="display: none" onchange="importData(event)">
+            <button class="btn-action btn-sync" id="syncBtn" onclick="toggleSync()">
+                <div class="sync-status" id="syncStatus"></div>
+                <span id="syncText">Conectar Nuvem</span>
+            </button>
+        </div>
+
+        <!-- Auth Section (hidden when logged in) -->
+        <div class="auth-container" id="authContainer" style="display: none;">
+            <h2 class="auth-title">🔐 Sincronização em Nuvem</h2>
+            <p class="auth-description">Entre com sua conta Google para sincronizar seus dados entre dispositivos</p>
+            <button class="btn-google" onclick="signInWithGoogle()">
+                <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg"><g fill="none" fill-rule="evenodd"><path d="M17.6 9.2l-.1-1.8H9v3.4h4.8C13.6 12 13 13 12 13.6v2.2h3a8.8 8.8 0 0 0 2.6-6.6z" fill="#4285F4"/><path d="M9 18c2.4 0 4.5-.8 6-2.2l-3-2.2a5.4 5.4 0 0 1-8-2.9H1V13a9 9 0 0 0 8 5z" fill="#34A853"/><path d="M4 10.7a5.4 5.4 0 0 1 0-3.4V5H1a9 9 0 0 0 0 8l3-2.3z" fill="#FBBC05"/><path d="M9 3.6c1.3 0 2.5.4 3.4 1.3L15 2.3A9 9 0 0 0 1 5l3 2.4a5.4 5.4 0 0 1 5-3.7z" fill="#EA4335"/></g></svg>
+                Entrar com Google
+            </button>
+        </div>
+
+        <!-- User Info (shown when logged in) -->
+        <div id="userInfoContainer" style="display: none;"></div>
+
+        <!-- Hero Section -->
+        <div class="hero">
+            <div class="hero-content">
+                <h1>🏃‍♀️ Meu Dashboard de Corrida PRO</h1>
+                <p class="subtitle">Acompanhe sua evolução de forma inteligente e motivadora</p>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-value" id="totalCompleted">0</div>
+                        <div class="stat-label">Treinos Completados</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, var(--secondary) 0%, #ee5a6f 100%);">
+                        <div class="stat-value" id="progressPercent">0%</div>
+                        <div class="stat-label">Progresso Total</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, var(--accent) 0%, #ffa502 100%);">
+                        <div class="stat-value" id="avgSpeed">-</div>
+                        <div class="stat-label">Velocidade Média</div>
+                    </div>
+                    <div class="stat-card" style="background: linear-gradient(135deg, #a29bfe 0%, #6c5ce7 100%);">
+                        <div class="stat-value" id="currentPhase">1</div>
+                        <div class="stat-label">Fase Atual</div>
+                    </div>
+                </div>
+
+                <div class="badges-container" id="badgesContainer"></div>
+            </div>
+        </div>
+
+        <!-- Goals Section -->
+        <div class="goals-container">
+            <div class="goals-header">
+                <h2 class="goals-title">🎯 Minhas Metas</h2>
+                <button class="btn-add-goal" onclick="openGoalModal()">+ Adicionar Meta</button>
+            </div>
+            <div class="goals-list" id="goalsList"></div>
+        </div>
+
+        <!-- Phases Section -->
+        <div class="section">
+            <h2 class="section-title">📊 Fases do Programa</h2>
+            <div class="phases-grid" id="phasesGrid"></div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="section">
+            <h2 class="section-title">📈 Estatísticas Avançadas</h2>
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3 class="chart-title">Progresso por Fase</h3>
+                    <canvas id="progressChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3 class="chart-title">Velocidade ao Longo do Tempo</h3>
+                    <canvas id="speedChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3 class="chart-title">Treinos por Tipo</h3>
+                    <canvas id="typeChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3 class="chart-title">Duração Média por Fase</h3>
+                    <canvas id="durationChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3 class="chart-title">Treinos por Semana</h3>
+                    <canvas id="weeklyChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3 class="chart-title">Evolução de Energia</h3>
+                    <canvas id="energyChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Section -->
+        <div class="section">
+            <h2 class="section-title">📅 Histórico Completo de Treinos</h2>
+            <div class="history-list" id="historyList"></div>
+        </div>
+    </div>
+
+    <!-- Workout Modal -->
+    <div class="modal" id="workoutModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalMainTitle">Registrar Treino</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <form id="workoutForm" onsubmit="saveWorkout(event)">
+                <input type="hidden" id="modalPhase">
+                <input type="hidden" id="modalWorkoutIndex">
+                <input type="hidden" id="modalEditingId">
+                
+                <div class="form-section">
+                    <div class="form-section-title">📋 Informações Básicas</div>
+                    <div class="form-group">
+                        <label class="form-label">Treino</label>
+                        <input type="text" class="form-input" id="modalWorkoutDesc" readonly>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Data</label>
+                            <input type="date" class="form-input" id="modalDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Hora do Treino</label>
+                            <select class="form-select" id="modalTime">
+                                <option value="">Selecione...</option>
+                                <option value="Manhã">Manhã (6h-12h)</option>
+                                <option value="Tarde">Tarde (12h-18h)</option>
+                                <option value="Noite">Noite (18h-22h)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">🏃‍♀️ Velocidades e Duração</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label">Velocidade Corrida (km/h)</label>
+                            <input type="number" class="form-input" id="modalRunSpeed" step="0.1" min="0" placeholder="Ex: 8.5">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Velocidade Caminhada (km/h)</label>
+                            <input type="number" class="form-input" id="modalWalkSpeed" step="0.1" min="0" placeholder="Ex: 5.0">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Duração Total (minutos)</label>
+                            <input type="number" class="form-input" id="modalDuration" min="1" placeholder="Ex: 25">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">💪 Como Você Estava?</div>
+                    <div class="form-group">
+                        <label class="form-label">Nível de Energia (1-5)</label>
+                        <div class="rating-container" id="energyRating">
+                            <button type="button" class="rating-btn" onclick="selectRating('energy', 1)">1</button>
+                            <button type="button" class="rating-btn" onclick="selectRating('energy', 2)">2</button>
+                            <button type="button" class="rating-btn" onclick="selectRating('energy', 3)">3</button>
+                            <button type="button" class="rating-btn" onclick="selectRating('energy', 4)">4</button>
+                            <button type="button" class="rating-btn" onclick="selectRating('energy', 5)">5</button>
+                        </div>
+                        <input type="hidden" id="modalEnergy">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Qualidade do Sono (Noite Anterior)</label>
+                        <select class="form-select" id="modalSleep">
+                            <option value="">Selecione...</option>
+                            <option value="Péssima">Péssima</option>
+                            <option value="Ruim">Ruim</option>
+                            <option value="Ok">Ok</option>
+                            <option value="Boa">Boa</option>
+                            <option value="Excelente">Excelente</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Clima</label>
+                        <select class="form-select" id="modalWeather">
+                            <option value="">Selecione...</option>
+                            <option value="☀️ Ensolarado">☀️ Ensolarado</option>
+                            <option value="⛅ Parcialmente Nublado">⛅ Parcialmente Nublado</option>
+                            <option value="☁️ Nublado">☁️ Nublado</option>
+                            <option value="🌧️ Chuva">🌧️ Chuva</option>
+                            <option value="🥵 Muito Quente">🥵 Muito Quente</option>
+                            <option value="🥶 Frio">🥶 Frio</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">🦵 Condição dos Joelhos</div>
+                    <div class="form-group">
+                        <label class="form-label">Dor nos Joelhos (0-10)</label>
+                        <div class="rating-container">
+                            <button type="button" class="rating-btn" onclick="selectRating('knee', 0)">0</button>
+                            <button type="button" class="rating-btn" onclick="selectRating('knee', 1)">1</button>
+                            <button type="button" class="rating-btn" onclick="selectRating('knee', 2)">2</button>
+                            <button type="button" class="rating-btn" onclick="selectRating('knee', 3)">3</button>
+                            <button type="button" class="rating-btn" onclick="selectRating('knee', 4)">4</button>
+                            <button type="button" class="rating-btn" onclick="selectRating('knee', 5)">5</button>
+                            <button type="button" class="rating-btn" onclick="selectRating('knee', 6)">6</button>
+                            <button type="button" class="rating-btn" onclick="selectRating('knee', 7)">7</button>
+                            <button type="button" class="rating-btn" onclick="selectRating('knee', 8)">8</button>
+                            <button type="button" class="rating-btn" onclick="selectRating('knee', 9)">9</button>
+                            <button type="button" class="rating-btn" onclick="selectRating('knee', 10)">10</button>
+                        </div>
+                        <input type="hidden" id="modalKneePain">
+                        <div style="display: flex; justify-content: space-between; margin-top: 5px; font-size: 0.8rem; color: #666;">
+                            <span>Sem dor</span>
+                            <span>Dor intensa</span>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Observações sobre Joelhos</label>
+                        <textarea class="form-input form-textarea" id="modalKneeNotes" placeholder="Ex: Joelho direito com leve desconforto no início..."></textarea>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">📝 Diário do Treino</div>
+                    <div class="form-group">
+                        <label class="form-label">Como se sentiu durante o treino?</label>
+                        <textarea class="form-input form-textarea" id="modalNotes" placeholder="Escreva sobre o treino, dificuldades, conquistas, emoções..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Humor Antes do Treino</label>
+                        <select class="form-select" id="modalMoodBefore">
+                            <option value="">Selecione...</option>
+                            <option value="😫">😫 Desmotivada</option>
+                            <option value="😐">😐 Neutro</option>
+                            <option value="🙂">🙂 Bem</option>
+                            <option value="😊">😊 Animada</option>
+                            <option value="🔥">🔥 Super Motivada</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Humor Depois do Treino</label>
+                        <select class="form-select" id="modalMoodAfter">
+                            <option value="">Selecione...</option>
+                            <option value="😫">😫 Exausta</option>
+                            <option value="😐">😐 Ok</option>
+                            <option value="🙂">🙂 Bem</option>
+                            <option value="😊">😊 Satisfeita</option>
+                            <option value="🔥">🔥 Energizada!</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-primary">💾 Salvar Treino</button>
+                <button type="button" class="btn-secondary" onclick="closeModal()">Cancelar</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Goal Modal -->
+    <div class="modal" id="goalModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">🎯 Adicionar Meta</h2>
+                <button class="close-btn" onclick="closeGoalModal()">&times;</button>
+            </div>
+            <form id="goalForm" onsubmit="saveGoal(event)">
+                <input type="hidden" id="goalEditingId">
+                
+                <div class="form-group">
+                    <label class="form-label">Título da Meta</label>
+                    <input type="text" class="form-input" id="goalTitle" required placeholder="Ex: Correr 1800m em 12 minutos">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Tipo de Meta</label>
+                    <select class="form-select" id="goalType" required>
+                        <option value="">Selecione...</option>
+                        <option value="distance">Distância Específica</option>
+                        <option value="time">Tempo Específico</option>
+                        <option value="phase">Completar Fase</option>
+                        <option value="frequency">Frequência Semanal</option>
+                        <option value="custom">Personalizada</option>
+                    </select>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Valor Atual</label>
+                        <input type="number" class="form-input" id="goalCurrent" required min="0" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Valor Meta</label>
+                        <input type="number" class="form-input" id="goalTarget" required min="0" step="0.1">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Unidade</label>
+                    <input type="text" class="form-input" id="goalUnit" placeholder="Ex: metros, minutos, treinos">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Data Limite (Opcional)</label>
+                    <input type="date" class="form-input" id="goalDeadline">
+                </div>
+
+                <button type="submit" class="btn-primary">💾 Salvar Meta</button>
+                <button type="button" class="btn-secondary" onclick="closeGoalModal()">Cancelar</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDEMOKEY-REPLACE-WITH-YOUR-KEY",
+            authDomain: "running-dashboard-demo.firebaseapp.com",
+            projectId: "running-dashboard-demo",
+            storageBucket: "running-dashboard-demo.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abc123"
+        };
+
+        // Initialize Firebase (users will need to replace with their own config)
+        let firebaseInitialized = false;
+        try {
+            firebase.initializeApp(firebaseConfig);
+            firebaseInitialized = true;
+        } catch (error) {
+            console.log('Firebase not configured. Using local storage only.');
+        }
+
+        // Data Structure
+        const workoutProgram = [
+            { phase: 1, workouts: [
+                { type: 'TEMPO', desc: '30" corrida + 1\'30" caminhada × 8-10x', session: 'Tempo 1' },
+                { type: 'TEMPO', desc: '30" corrida + 1\'30" caminhada × 8-10x', session: 'Tempo 2' },
+                { type: 'DISTÂNCIA', desc: '50m corrida + 400m caminhada × 4-5x', session: 'Dist 1' }
+            ]},
+            { phase: 2, workouts: [
+                { type: 'TEMPO', desc: '1\' corrida + 1\'30" caminhada × 8-10x', session: 'Tempo 1' },
+                { type: 'TEMPO', desc: '1\' corrida + 1\'30" caminhada × 8-10x', session: 'Tempo 2' },
+                { type: 'DISTÂNCIA', desc: '100m corrida + 400m caminhada × 4-5x', session: 'Dist 1' },
+                { type: 'TIRO', desc: '20" a 10-11km/h + 1\'30" caminhada × 6x', session: 'Tiro 1' }
+            ]},
+            { phase: 3, workouts: [
+                { type: 'TEMPO', desc: '1\'30" corrida + 1\'30" caminhada × 7-8x', session: 'Tempo 1' },
+                { type: 'TEMPO', desc: '1\'30" corrida + 1\'30" caminhada × 7-8x', session: 'Tempo 2' },
+                { type: 'DISTÂNCIA', desc: '150m corrida + 350m caminhada × 4-5x', session: 'Dist 1' },
+                { type: 'TIRO', desc: '25" a 10-11km/h + 1\'30" caminhada × 6x', session: 'Tiro 1' }
+            ]},
+            { phase: 4, workouts: [
+                { type: 'TEMPO', desc: '2\' corrida + 1\' caminhada × 7-8x', session: 'Tempo 1' },
+                { type: 'TEMPO', desc: '2\' corrida + 1\' caminhada × 7-8x', session: 'Tempo 2' },
+                { type: 'DISTÂNCIA', desc: '200m corrida + 300m caminhada × 4-5x', session: 'Dist 1' },
+                { type: 'TIRO', desc: '30" a 11-12km/h + 1\'30" caminhada × 6-8x', session: 'Tiro 1' }
+            ]},
+            { phase: 5, workouts: [
+                { type: 'TEMPO', desc: '2\'30" corrida + 1\' caminhada × 6-7x', session: 'Tempo 1' },
+                { type: 'TEMPO', desc: '2\'30" corrida + 1\' caminhada × 6-7x', session: 'Tempo 2' },
+                { type: 'DISTÂNCIA', desc: '250m corrida + 250m caminhada × 4-5x', session: 'Dist 1' },
+                { type: 'TIRO', desc: '30" a 11-12km/h + 1\' caminhada × 8x', session: 'Tiro 1' }
+            ]},
+            { phase: 6, workouts: [
+                { type: 'TEMPO', desc: '3\' corrida + 1\' caminhada × 6-7x', session: 'Tempo 1' },
+                { type: 'TEMPO', desc: '3\' corrida + 1\' caminhada × 6-7x', session: 'Tempo 2' },
+                { type: 'DISTÂNCIA', desc: '300m corrida + 200m caminhada × 4-5x', session: 'Dist 1' },
+                { type: 'TIRO', desc: '35" a 11-12km/h + 1\' caminhada × 8x', session: 'Tiro 1' }
+            ]},
+            { phase: 7, workouts: [
+                { type: 'TEMPO', desc: '4\' corrida + 1\' caminhada × 5-6x', session: 'Tempo 1' },
+                { type: 'TEMPO', desc: '4\' corrida + 1\' caminhada × 5-6x', session: 'Tempo 2' },
+                { type: 'DISTÂNCIA', desc: '400m corrida + 200m caminhada × 3-4x', session: 'Dist 1' },
+                { type: 'TIRO', desc: '40" a 12km/h + 1\' caminhada × 8x', session: 'Tiro 1' }
+            ]},
+            { phase: 8, workouts: [
+                { type: 'TEMPO', desc: '5\' corrida + 1\' caminhada × 4-5x', session: 'Tempo 1' },
+                { type: 'TEMPO', desc: '5\' corrida + 1\' caminhada × 4-5x', session: 'Tempo 2' },
+                { type: 'DISTÂNCIA', desc: '500m corrida + 200m caminhada × 3x', session: 'Dist 1' },
+                { type: 'TIRO', desc: '45" a 12km/h + 50" caminhada × 10x', session: 'Tiro 1' }
+            ]},
+            { phase: 9, workouts: [
+                { type: 'TEMPO', desc: '8\' corrida + 2\' caminhada × 3x', session: 'Tempo 1' },
+                { type: 'TEMPO', desc: '8\' corrida + 2\' caminhada × 3x', session: 'Tempo 2' },
+                { type: 'DISTÂNCIA', desc: '600m corrida + 200m caminhada × 3x', session: 'Dist 1' },
+                { type: 'TIRO', desc: '50" a 12-13km/h + 50" caminhada × 10x', session: 'Tiro 1' }
+            ]},
+            { phase: 10, workouts: [
+                { type: 'TEMPO', desc: '10\' corrida + 2\' caminhada × 2-3x', session: 'Tempo 1' },
+                { type: 'TEMPO', desc: '10\' corrida + 2\' caminhada × 2-3x', session: 'Tempo 2' },
+                { type: 'DISTÂNCIA', desc: '800m corrida + 200m caminhada × 2x', session: 'Dist 1' },
+                { type: 'TIRO', desc: '1\' a 12-13km/h + 1\' caminhada × 8-10x', session: 'Tiro 1' }
+            ]},
+            { phase: 11, workouts: [
+                { type: 'TEMPO', desc: '12-15\' corrida contínua + aquec/resfr', session: 'Tempo 1' },
+                { type: 'TEMPO', desc: '12-15\' corrida contínua + aquec/resfr', session: 'Tempo 2' },
+                { type: 'DISTÂNCIA', desc: '1000m corrida contínua + aquec/resfr', session: 'Dist 1' },
+                { type: 'TIRO', desc: '1\' a 13km/h + 1\' caminhada × 10x', session: 'Tiro 1' }
+            ]},
+            { phase: 12, workouts: [
+                { type: 'TEMPO', desc: '20\' corrida contínua + aquec/resfr', session: 'Tempo 1' },
+                { type: 'TEMPO', desc: '20\' corrida contínua + aquec/resfr', session: 'Tempo 2' },
+                { type: 'DISTÂNCIA', desc: '1500m corrida contínua + aquec/resfr', session: 'Dist 1' },
+                { type: 'TIRO', desc: '1\'30" a 13km/h + 1\' caminhada × 8x', session: 'Tiro 1' }
+            ]}
+        ];
+
+        // Initialize
+        let workoutData = JSON.parse(localStorage.getItem('workoutData')) || [];
+        let goalsData = JSON.parse(localStorage.getItem('goalsData')) || [];
+        let charts = {};
+        let currentUser = null;
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            document.getElementById('modalDate').valueAsDate = new Date();
+            
+            if (firebaseInitialized) {
+                firebase.auth().onAuthStateChanged((user) => {
+                    if (user) {
+                        currentUser = user;
+                        showUserInfo(user);
+                        syncFromCloud();
+                    } else {
+                        currentUser = null;
+                        hideUserInfo();
+                    }
+                });
+            }
+            
+            renderDashboard();
+            renderGoals();
+            renderPhases();
+            renderHistory();
+            initCharts();
+            checkBadges();
+        });
+
+        // Auth Functions
+        function signInWithGoogle() {
+            if (!firebaseInitialized) {
+                alert('⚠️ Sincronização em nuvem não configurada. Usando apenas armazenamento local.');
+                return;
+            }
+            const provider = new firebase.auth.GoogleAuthProvider();
+            firebase.auth().signInWithPopup(provider)
+                .then((result) => {
+                    currentUser = result.user;
+                    showUserInfo(result.user);
+                    syncToCloud();
+                })
+                .catch((error) => {
+                    alert('Erro ao fazer login: ' + error.message);
+                });
+        }
+
+        function signOut() {
+            if (!firebaseInitialized) return;
+            firebase.auth().signOut().then(() => {
+                currentUser = null;
+                hideUserInfo();
+                document.getElementById('syncBtn').classList.remove('syncing');
+                document.getElementById('syncText').textContent = 'Conectar Nuvem';
+            });
+        }
+
+        function showUserInfo(user) {
+            document.getElementById('authContainer').style.display = 'none';
+            const container = document.getElementById('userInfoContainer');
+            container.style.display = 'block';
+            container.innerHTML = `
+                <div class="auth-container">
+                    <div class="user-info">
+                        <img src="${user.photoURL}" alt="${user.displayName}" class="user-avatar">
+                        <div>
+                            <div class="user-name">${user.displayName}</div>
+                            <button class="btn-secondary" onclick="signOut()">Sair</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('syncBtn').classList.add('syncing');
+            document.getElementById('syncText').textContent = 'Sincronizado';
+        }
+
+        function hideUserInfo() {
+            document.getElementById('authContainer').style.display = 'block';
+            document.getElementById('userInfoContainer').style.display = 'none';
+        }
+
+        function toggleSync() {
+            if (currentUser) {
+                // Already logged in, show options
+                if (confirm('Deseja sair e desconectar da nuvem?')) {
+                    signOut();
+                }
+            } else {
+                document.getElementById('authContainer').style.display = 'block';
+                document.getElementById('authContainer').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        // Cloud Sync Functions
+        function syncToCloud() {
+            if (!firebaseInitialized || !currentUser) return;
+            
+            const db = firebase.firestore();
+            const userRef = db.collection('users').doc(currentUser.uid);
+            
+            userRef.set({
+                workoutData: workoutData,
+                goalsData: goalsData,
+                lastSync: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                console.log('Dados sincronizados com sucesso!');
+            }).catch((error) => {
+                console.error('Erro ao sincronizar:', error);
+            });
+        }
+
+        function syncFromCloud() {
+            if (!firebaseInitialized || !currentUser) return;
+            
+            const db = firebase.firestore();
+            const userRef = db.collection('users').doc(currentUser.uid);
+            
+            userRef.get().then((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    if (data.workoutData) {
+                        workoutData = data.workoutData;
+                        localStorage.setItem('workoutData', JSON.stringify(workoutData));
+                    }
+                    if (data.goalsData) {
+                        goalsData = data.goalsData;
+                        localStorage.setItem('goalsData', JSON.stringify(goalsData));
+                    }
+                    renderDashboard();
+                    renderGoals();
+                    renderPhases();
+                    renderHistory();
+                    updateCharts();
+                    checkBadges();
+                }
+            }).catch((error) => {
+                console.error('Erro ao buscar dados:', error);
+            });
+        }
+
+        // Export/Import Functions
+        function exportData() {
+            const exportData = {
+                workouts: workoutData,
+                goals: goalsData,
+                exportDate: new Date().toISOString(),
+                version: '2.0'
+            };
+            
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `running-backup-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            
+            alert('✅ Backup exportado com sucesso!');
+        }
+
+        function importData(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    
+                    if (!confirm('⚠️ Isso vai SUBSTITUIR todos os seus dados atuais. Tem certeza?')) {
+                        return;
+                    }
+                    
+                    workoutData = imported.workouts || [];
+                    goalsData = imported.goals || [];
+                    
+                    localStorage.setItem('workoutData', JSON.stringify(workoutData));
+                    localStorage.setItem('goalsData', JSON.stringify(goalsData));
+                    
+                    if (currentUser) {
+                        syncToCloud();
+                    }
+                    
+                    renderDashboard();
+                    renderGoals();
+                    renderPhases();
+                    renderHistory();
+                    updateCharts();
+                    checkBadges();
+                    
+                    alert('✅ Backup importado com sucesso!');
+                } catch (error) {
+                    alert('❌ Erro ao importar backup: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        // Goals Functions
+        function openGoalModal(goalId = null) {
+            if (goalId) {
+                const goal = goalsData.find(g => g.id === goalId);
+                if (goal) {
+                    document.getElementById('goalEditingId').value = goalId;
+                    document.getElementById('goalTitle').value = goal.title;
+                    document.getElementById('goalType').value = goal.type;
+                    document.getElementById('goalCurrent').value = goal.current;
+                    document.getElementById('goalTarget').value = goal.target;
+                    document.getElementById('goalUnit').value = goal.unit || '';
+                    document.getElementById('goalDeadline').value = goal.deadline || '';
+                }
+            } else {
+                document.getElementById('goalForm').reset();
+                document.getElementById('goalEditingId').value = '';
+            }
+            document.getElementById('goalModal').classList.add('active');
+        }
+
+        function closeGoalModal() {
+            document.getElementById('goalModal').classList.remove('active');
+        }
+
+        function saveGoal(event) {
+            event.preventDefault();
+            
+            const goalId = document.getElementById('goalEditingId').value;
+            const goal = {
+                id: goalId || Date.now().toString(),
+                title: document.getElementById('goalTitle').value,
+                type: document.getElementById('goalType').value,
+                current: parseFloat(document.getElementById('goalCurrent').value),
+                target: parseFloat(document.getElementById('goalTarget').value),
+                unit: document.getElementById('goalUnit').value,
+                deadline: document.getElementById('goalDeadline').value,
+                createdAt: goalId ? goalsData.find(g => g.id === goalId).createdAt : Date.now()
+            };
+            
+            if (goalId) {
+                const index = goalsData.findIndex(g => g.id === goalId);
+                goalsData[index] = goal;
+            } else {
+                goalsData.push(goal);
+            }
+            
+            localStorage.setItem('goalsData', JSON.stringify(goalsData));
+            if (currentUser) syncToCloud();
+            
+            closeGoalModal();
+            renderGoals();
+        }
+
+        function deleteGoal(goalId) {
+            if (!confirm('Tem certeza que deseja excluir esta meta?')) return;
+            
+            goalsData = goalsData.filter(g => g.id !== goalId);
+            localStorage.setItem('goalsData', JSON.stringify(goalsData));
+            if (currentUser) syncToCloud();
+            
+            renderGoals();
+        }
+
+        function renderGoals() {
+            const container = document.getElementById('goalsList');
+            
+            if (goalsData.length === 0) {
+                container.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">Nenhuma meta cadastrada. Clique em "+ Adicionar Meta" para começar!</div>';
+                return;
+            }
+            
+            container.innerHTML = goalsData.map(goal => {
+                const progress = Math.min((goal.current / goal.target) * 100, 100);
+                const daysLeft = goal.deadline ? Math.ceil((new Date(goal.deadline) - new Date()) / (1000 * 60 * 60 * 24)) : null;
+                
+                return `
+                    <div class="goal-item">
+                        <div class="goal-header-item">
+                            <div class="goal-title-text">${goal.title}</div>
+                            <div class="goal-actions">
+                                <button class="btn-icon" onclick="openGoalModal('${goal.id}')">✏️</button>
+                                <button class="btn-icon" onclick="deleteGoal('${goal.id}')">🗑️</button>
+                            </div>
+                        </div>
+                        <div class="goal-progress-bar">
+                            <div class="goal-progress-fill" style="width: ${progress}%"></div>
+                        </div>
+                        <div class="goal-progress-text">
+                            ${goal.current} / ${goal.target} ${goal.unit || ''} (${progress.toFixed(1)}%)
+                            ${daysLeft !== null ? `<br>⏰ ${daysLeft > 0 ? daysLeft + ' dias restantes' : 'Prazo expirado'}` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Rating Selection
+        function selectRating(type, value) {
+            const container = document.getElementById(type + 'Rating');
+            const buttons = container.querySelectorAll('.rating-btn');
+            buttons.forEach(btn => btn.classList.remove('selected'));
+            buttons[value - (type === 'knee' ? 0 : 1)].classList.add('selected');
+            
+            if (type === 'energy') {
+                document.getElementById('modalEnergy').value = value;
+            } else if (type === 'knee') {
+                document.getElementById('modalKneePain').value = value;
+            }
+        }
+
+        function renderDashboard() {
+            const total = workoutProgram.reduce((sum, phase) => sum + phase.workouts.length, 0);
+            const completed = workoutData.length;
+            const progress = Math.round((completed / total) * 100);
+
+            document.getElementById('totalCompleted').textContent = completed;
+            document.getElementById('progressPercent').textContent = progress + '%';
+
+            const speeds = workoutData.filter(w => w.runSpeed > 0).map(w => w.runSpeed);
+            const avgSpeed = speeds.length > 0 
+                ? (speeds.reduce((a, b) => a + b, 0) / speeds.length).toFixed(1) 
+                : '-';
+            document.getElementById('avgSpeed').textContent = avgSpeed !== '-' ? avgSpeed + ' km/h' : avgSpeed;
+
+            let currentPhase = 1;
+            for (let i = 0; i < workoutProgram.length; i++) {
+                const phaseWorkouts = workoutProgram[i].workouts;
+                const phaseCompleted = workoutData.filter(w => w.phase === i + 1).length;
+                if (phaseCompleted < phaseWorkouts.length) {
+                    currentPhase = i + 1;
+                    break;
+                }
+                if (i === workoutProgram.length - 1) {
+                    currentPhase = 12;
+                }
+            }
+            document.getElementById('currentPhase').textContent = currentPhase;
+        }
+
+        function renderPhases() {
+            const grid = document.getElementById('phasesGrid');
+            grid.innerHTML = '';
+
+            workoutProgram.forEach((phaseData, phaseIndex) => {
+                const phase = phaseIndex + 1;
+                const completedWorkouts = workoutData.filter(w => w.phase === phase).length;
+                const totalWorkouts = phaseData.workouts.length;
+                const progressPercent = (completedWorkouts / totalWorkouts) * 100;
+
+                const card = document.createElement('div');
+                card.className = 'phase-card';
+                card.innerHTML = `
+                    <div class="phase-header">
+                        <div class="phase-title">Fase ${phase}</div>
+                        <div class="phase-badge">${completedWorkouts}/${totalWorkouts}</div>
+                    </div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar" style="width: ${progressPercent}%"></div>
+                    </div>
+                    <div class="workouts-list">
+                        ${phaseData.workouts.map((workout, workoutIndex) => {
+                            const isCompleted = workoutData.some(w => 
+                                w.phase === phase && w.workoutIndex === workoutIndex
+                            );
+                            return `
+                                <div class="workout-item" onclick="openWorkoutModal(${phase}, ${workoutIndex})">
+                                    <div class="workout-checkbox ${isCompleted ? 'checked' : ''}"></div>
+                                    <div class="workout-type type-${workout.type.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')}">${workout.type}</div>
+                                    <div class="workout-desc">${workout.desc}</div>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function openWorkoutModal(phase, workoutIndex, editingId = null) {
+            if (editingId) {
+                // Editing mode
+                const workout = workoutData.find(w => w.timestamp === editingId);
+                if (!workout) return;
+                
+                document.getElementById('modalMainTitle').textContent = 'Editar Treino';
+                document.getElementById('modalEditingId').value = editingId;
+                document.getElementById('modalPhase').value = workout.phase;
+                document.getElementById('modalWorkoutIndex').value = workout.workoutIndex;
+                
+                const workoutInfo = workoutProgram[workout.phase - 1].workouts[workout.workoutIndex];
+                document.getElementById('modalWorkoutDesc').value = `Fase ${workout.phase} - ${workoutInfo.type}: ${workoutInfo.desc}`;
+                
+                document.getElementById('modalDate').value = workout.date;
+                document.getElementById('modalTime').value = workout.time || '';
+                document.getElementById('modalRunSpeed').value = workout.runSpeed || '';
+                document.getElementById('modalWalkSpeed').value = workout.walkSpeed || '';
+                document.getElementById('modalDuration').value = workout.duration || '';
+                document.getElementById('modalEnergy').value = workout.energy || '';
+                document.getElementById('modalSleep').value = workout.sleep || '';
+                document.getElementById('modalWeather').value = workout.weather || '';
+                document.getElementById('modalKneePain').value = workout.kneePain !== undefined ? workout.kneePain : '';
+                document.getElementById('modalKneeNotes').value = workout.kneeNotes || '';
+                document.getElementById('modalNotes').value = workout.notes || '';
+                document.getElementById('modalMoodBefore').value = workout.moodBefore || '';
+                document.getElementById('modalMoodAfter').value = workout.moodAfter || '';
+                
+                // Pre-select ratings
+                if (workout.energy) {
+                    selectRating('energy', workout.energy);
+                }
+                if (workout.kneePain !== undefined) {
+                    selectRating('knee', workout.kneePain);
+                }
+            } else {
+                // New workout mode
+                const isCompleted = workoutData.some(w => 
+                    w.phase === phase && w.workoutIndex === workoutIndex
+                );
+
+                if (isCompleted) {
+                    alert('Este treino já foi registrado! Para editar, use o botão ✏️ no histórico.');
+                    return;
+                }
+
+                document.getElementById('modalMainTitle').textContent = 'Registrar Treino';
+                document.getElementById('modalEditingId').value = '';
+                document.getElementById('modalPhase').value = phase;
+                document.getElementById('modalWorkoutIndex').value = workoutIndex;
+                
+                const workout = workoutProgram[phase - 1].workouts[workoutIndex];
+                document.getElementById('modalWorkoutDesc').value = `Fase ${phase} - ${workout.type}: ${workout.desc}`;
+                
+                // Clear all fields
+                document.getElementById('workoutForm').reset();
+                document.getElementById('modalDate').valueAsDate = new Date();
+                document.querySelectorAll('.rating-btn').forEach(btn => btn.classList.remove('selected'));
+            }
+            
+            document.getElementById('workoutModal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('workoutModal').classList.remove('active');
+        }
+
+        function saveWorkout(event) {
+            event.preventDefault();
+
+            const editingId = document.getElementById('modalEditingId').value;
+            
+            const workout = {
+                phase: parseInt(document.getElementById('modalPhase').value),
+                workoutIndex: parseInt(document.getElementById('modalWorkoutIndex').value),
+                date: document.getElementById('modalDate').value,
+                time: document.getElementById('modalTime').value,
+                runSpeed: parseFloat(document.getElementById('modalRunSpeed').value) || 0,
+                walkSpeed: parseFloat(document.getElementById('modalWalkSpeed').value) || 0,
+                duration: parseInt(document.getElementById('modalDuration').value) || 0,
+                energy: parseInt(document.getElementById('modalEnergy').value) || 0,
+                sleep: document.getElementById('modalSleep').value,
+                weather: document.getElementById('modalWeather').value,
+                kneePain: parseInt(document.getElementById('modalKneePain').value) >= 0 ? parseInt(document.getElementById('modalKneePain').value) : null,
+                kneeNotes: document.getElementById('modalKneeNotes').value,
+                notes: document.getElementById('modalNotes').value,
+                moodBefore: document.getElementById('modalMoodBefore').value,
+                moodAfter: document.getElementById('modalMoodAfter').value,
+                timestamp: editingId ? parseInt(editingId) : Date.now()
+            };
+
+            if (editingId) {
+                // Update existing workout
+                const index = workoutData.findIndex(w => w.timestamp === parseInt(editingId));
+                workoutData[index] = workout;
+            } else {
+                // Add new workout
+                workoutData.push(workout);
+            }
+
+            localStorage.setItem('workoutData', JSON.stringify(workoutData));
+            if (currentUser) syncToCloud();
+
+            closeModal();
+            renderDashboard();
+            renderPhases();
+            renderHistory();
+            updateCharts();
+            checkBadges();
+
+            alert(editingId ? '✅ Treino atualizado com sucesso!' : '🎉 Treino registrado com sucesso! Continue assim!');
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            
+            if (workoutData.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📝</div>
+                        <div>Nenhum treino registrado ainda. Comece sua jornada!</div>
+                    </div>
+                `;
+                return;
+            }
+
+            const sorted = [...workoutData].sort((a, b) => b.timestamp - a.timestamp);
+            
+            list.innerHTML = sorted.map((workout) => {
+                const phaseData = workoutProgram[workout.phase - 1];
+                const workoutInfo = phaseData.workouts[workout.workoutIndex];
+                
+                return `
+                    <div class="history-item">
+                        <div class="history-header">
+                            <div class="history-info">
+                                <div class="history-date">${new Date(workout.date).toLocaleDateString('pt-BR')} ${workout.time ? '• ' + workout.time : ''}</div>
+                                <div class="history-workout">Fase ${workout.phase} - ${workoutInfo.type}: ${workoutInfo.desc}</div>
+                                <div class="history-stats">
+                                    ${workout.runSpeed > 0 ? `🏃‍♀️ ${workout.runSpeed} km/h` : ''} 
+                                    ${workout.walkSpeed > 0 ? `| 🚶‍♀️ ${workout.walkSpeed} km/h` : ''} 
+                                    ${workout.duration > 0 ? `| ⏱️ ${workout.duration} min` : ''}
+                                    ${workout.kneePain !== null ? `| 🦵 Dor: ${workout.kneePain}/10` : ''}
+                                </div>
+                            </div>
+                            <div class="history-actions">
+                                <button class="btn-edit" onclick="openWorkoutModal(${workout.phase}, ${workout.workoutIndex}, ${workout.timestamp})">✏️ Editar</button>
+                                <button class="delete-btn" onclick="deleteWorkout(${workout.timestamp})">🗑️</button>
+                            </div>
+                        </div>
+                        <div class="history-expanded">
+                            ${workout.energy ? `<div class="history-detail"><span class="history-detail-label">Energia:</span> ${workout.energy}/5</div>` : ''}
+                            ${workout.sleep ? `<div class="history-detail"><span class="history-detail-label">Sono:</span> ${workout.sleep}</div>` : ''}
+                            ${workout.weather ? `<div class="history-detail"><span class="history-detail-label">Clima:</span> ${workout.weather}</div>` : ''}
+                            ${workout.moodBefore ? `<div class="history-detail"><span class="history-detail-label">Humor Antes:</span> ${workout.moodBefore}</div>` : ''}
+                            ${workout.moodAfter ? `<div class="history-detail"><span class="history-detail-label">Humor Depois:</span> ${workout.moodAfter}</div>` : ''}
+                            ${workout.kneeNotes ? `<div class="history-detail" style="grid-column: 1/-1;"><span class="history-detail-label">Obs Joelhos:</span> ${workout.kneeNotes}</div>` : ''}
+                            ${workout.notes ? `<div class="history-detail" style="grid-column: 1/-1;"><span class="history-detail-label">Notas:</span> ${workout.notes}</div>` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function deleteWorkout(timestamp) {
+            if (!confirm('Tem certeza que deseja excluir este treino?')) return;
+            
+            workoutData = workoutData.filter(w => w.timestamp !== timestamp);
+            localStorage.setItem('workoutData', JSON.stringify(workoutData));
+            if (currentUser) syncToCloud();
+            
+            renderDashboard();
+            renderPhases();
+            renderHistory();
+            updateCharts();
+            checkBadges();
+        }
+
+        function initCharts() {
+            // Progress by Phase Chart
+            const progressCtx = document.getElementById('progressChart').getContext('2d');
+            const progressData = workoutProgram.map((phase, i) => {
+                const completed = workoutData.filter(w => w.phase === i + 1).length;
+                return (completed / phase.workouts.length) * 100;
+            });
+
+            charts.progress = new Chart(progressCtx, {
+                type: 'bar',
+                data: {
+                    labels: workoutProgram.map((_, i) => `Fase ${i + 1}`),
+                    datasets: [{
+                        label: 'Progresso (%)',
+                        data: progressData,
+                        backgroundColor: 'rgba(0, 212, 170, 0.8)',
+                        borderColor: 'rgba(0, 212, 170, 1)',
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+
+            // Speed Chart
+            const speedCtx = document.getElementById('speedChart').getContext('2d');
+            const sortedByDate = [...workoutData]
+                .filter(w => w.runSpeed > 0 || w.walkSpeed > 0)
+                .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            charts.speed = new Chart(speedCtx, {
+                type: 'line',
+                data: {
+                    labels: sortedByDate.map(w => new Date(w.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })),
+                    datasets: [
+                        {
+                            label: 'Velocidade Corrida (km/h)',
+                            data: sortedByDate.map(w => w.runSpeed),
+                            borderColor: 'rgba(255, 107, 107, 1)',
+                            backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        },
+                        {
+                            label: 'Velocidade Caminhada (km/h)',
+                            data: sortedByDate.map(w => w.walkSpeed),
+                            borderColor: 'rgba(0, 212, 170, 1)',
+                            backgroundColor: 'rgba(0, 212, 170, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true
+                }
+            });
+
+            // Type Chart
+            const typeCtx = document.getElementById('typeChart').getContext('2d');
+            const typeData = {
+                'TEMPO': workoutData.filter(w => {
+                    const info = workoutProgram[w.phase - 1].workouts[w.workoutIndex];
+                    return info.type === 'TEMPO';
+                }).length,
+                'DISTÂNCIA': workoutData.filter(w => {
+                    const info = workoutProgram[w.phase - 1].workouts[w.workoutIndex];
+                    return info.type === 'DISTÂNCIA';
+                }).length,
+                'TIRO': workoutData.filter(w => {
+                    const info = workoutProgram[w.phase - 1].workouts[w.workoutIndex];
+                    return info.type === 'TIRO';
+                }).length
+            };
+
+            charts.type = new Chart(typeCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['TEMPO', 'DISTÂNCIA', 'TIRO'],
+                    datasets: [{
+                        data: Object.values(typeData),
+                        backgroundColor: [
+                            'rgba(0, 212, 170, 0.8)',
+                            'rgba(255, 211, 61, 0.8)',
+                            'rgba(255, 107, 107, 0.8)'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true
+                }
+            });
+
+            // Duration Chart
+            const durationCtx = document.getElementById('durationChart').getContext('2d');
+            const durationData = workoutProgram.map((phase, i) => {
+                const phaseWorkouts = workoutData.filter(w => w.phase === i + 1 && w.duration > 0);
+                if (phaseWorkouts.length === 0) return 0;
+                return phaseWorkouts.reduce((sum, w) => sum + w.duration, 0) / phaseWorkouts.length;
+            });
+
+            charts.duration = new Chart(durationCtx, {
+                type: 'line',
+                data: {
+                    labels: workoutProgram.map((_, i) => `Fase ${i + 1}`),
+                    datasets: [{
+                        label: 'Duração Média (min)',
+                        data: durationData,
+                        borderColor: 'rgba(162, 155, 254, 1)',
+                        backgroundColor: 'rgba(162, 155, 254, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true
+                }
+            });
+
+            // Weekly Chart
+            const weeklyCtx = document.getElementById('weeklyChart').getContext('2d');
+            const weeklyData = getWeeklyWorkouts();
+
+            charts.weekly = new Chart(weeklyCtx, {
+                type: 'bar',
+                data: {
+                    labels: weeklyData.labels,
+                    datasets: [{
+                        label: 'Treinos',
+                        data: weeklyData.counts,
+                        backgroundColor: 'rgba(255, 211, 61, 0.8)',
+                        borderColor: 'rgba(255, 211, 61, 1)',
+                        borderWidth: 2,
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true
+                }
+            });
+
+            // Energy Chart
+            const energyCtx = document.getElementById('energyChart').getContext('2d');
+            const energyWorkouts = [...workoutData]
+                .filter(w => w.energy > 0)
+                .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            charts.energy = new Chart(energyCtx, {
+                type: 'line',
+                data: {
+                    labels: energyWorkouts.map(w => new Date(w.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })),
+                    datasets: [{
+                        label: 'Nível de Energia (1-5)',
+                        data: energyWorkouts.map(w => w.energy),
+                        borderColor: 'rgba(255, 165, 2, 1)',
+                        backgroundColor: 'rgba(255, 165, 2, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 5
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateCharts() {
+            // Update all charts
+            const progressData = workoutProgram.map((phase, i) => {
+                const completed = workoutData.filter(w => w.phase === i + 1).length;
+                return (completed / phase.workouts.length) * 100;
+            });
+            charts.progress.data.datasets[0].data = progressData;
+            charts.progress.update();
+
+            const sortedByDate = [...workoutData]
+                .filter(w => w.runSpeed > 0 || w.walkSpeed > 0)
+                .sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            charts.speed.data.labels = sortedByDate.map(w => 
+                new Date(w.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+            );
+            charts.speed.data.datasets[0].data = sortedByDate.map(w => w.runSpeed);
+            charts.speed.data.datasets[1].data = sortedByDate.map(w => w.walkSpeed);
+            charts.speed.update();
+
+            const typeData = {
+                'TEMPO': workoutData.filter(w => {
+                    const info = workoutProgram[w.phase - 1].workouts[w.workoutIndex];
+                    return info.type === 'TEMPO';
+                }).length,
+                'DISTÂNCIA': workoutData.filter(w => {
+                    const info = workoutProgram[w.phase - 1].workouts[w.workoutIndex];
+                    return info.type === 'DISTÂNCIA';
+                }).length,
+                'TIRO': workoutData.filter(w => {
+                    const info = workoutProgram[w.phase - 1].workouts[w.workoutIndex];
+                    return info.type === 'TIRO';
+                }).length
+            };
+            charts.type.data.datasets[0].data = Object.values(typeData);
+            charts.type.update();
+
+            const durationData = workoutProgram.map((phase, i) => {
+                const phaseWorkouts = workoutData.filter(w => w.phase === i + 1 && w.duration > 0);
+                if (phaseWorkouts.length === 0) return 0;
+                return phaseWorkouts.reduce((sum, w) => sum + w.duration, 0) / phaseWorkouts.length;
+            });
+            charts.duration.data.datasets[0].data = durationData;
+            charts.duration.update();
+
+            const weeklyData = getWeeklyWorkouts();
+            charts.weekly.data.labels = weeklyData.labels;
+            charts.weekly.data.datasets[0].data = weeklyData.counts;
+            charts.weekly.update();
+
+            const energyWorkouts = [...workoutData]
+                .filter(w => w.energy > 0)
+                .sort((a, b) => new Date(a.date) - new Date(b.date));
+            charts.energy.data.labels = energyWorkouts.map(w => 
+                new Date(w.date).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+            );
+            charts.energy.data.datasets[0].data = energyWorkouts.map(w => w.energy);
+            charts.energy.update();
+        }
+
+        function getWeeklyWorkouts() {
+            const weeks = {};
+            workoutData.forEach(w => {
+                const date = new Date(w.date);
+                const weekStart = new Date(date);
+                weekStart.setDate(date.getDate() - date.getDay());
+                const weekKey = weekStart.toISOString().split('T')[0];
+                weeks[weekKey] = (weeks[weekKey] || 0) + 1;
+            });
+
+            const sorted = Object.keys(weeks).sort();
+            return {
+                labels: sorted.map(w => {
+                    const date = new Date(w);
+                    return `${date.getDate()}/${date.getMonth() + 1}`;
+                }),
+                counts: sorted.map(w => weeks[w])
+            };
+        }
+
+        function checkBadges() {
+            const badges = [];
+            const completed = workoutData.length;
+
+            if (completed >= 1) badges.push({ text: '🎯 Primeira Vitória', icon: '🎯' });
+            if (completed >= 5) badges.push({ text: '🔥 5 Treinos', icon: '🔥' });
+            if (completed >= 10) badges.push({ text: '💪 Comprometida', icon: '💪' });
+            if (completed >= 20) badges.push({ text: '⭐ 20 Treinos!', icon: '⭐' });
+            if (completed >= 30) badges.push({ text: '🏆 Imparável', icon: '🏆' });
+            if (completed >= 50) badges.push({ text: '👑 Rainha da Corrida', icon: '👑' });
+
+            for (let i = 0; i < workoutProgram.length; i++) {
+                const phaseCompleted = workoutData.filter(w => w.phase === i + 1).length;
+                if (phaseCompleted >= workoutProgram[i].workouts.length) {
+                    badges.push({ text: `✅ Fase ${i + 1} Completa`, icon: '✅' });
+                    break;
+                }
+            }
+
+            const container = document.getElementById('badgesContainer');
+            container.innerHTML = badges.map(badge => `
+                <div class="badge">
+                    <span>${badge.icon}</span>
+                    <span>${badge.text}</span>
+                </div>
+            `).join('');
+        }
+
+        // Close modals on outside click
+        document.getElementById('workoutModal').addEventListener('click', (e) => {
+            if (e.target.id === 'workoutModal') {
+                closeModal();
+            }
+        });
+
+        document.getElementById('goalModal').addEventListener('click', (e) => {
+            if (e.target.id === 'goalModal') {
+                closeGoalModal();
+            }
+        });
+    </script>
+</body>
+</html>
